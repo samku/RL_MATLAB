@@ -44,12 +44,21 @@ x = [10;0];
 for i=2:N
     x = [x, (Ad-Bd*K)*x(:,end)];
 end
-figure
-subplot(2,1,1)
+figure('units','normalized','outerposition',[0 0 1 1])
+subplot(2,2,2)
 plot(x(1,:),':','LineWidth',2)
+title('Position')
+grid on
 hold on
-subplot(2,1,2)
+subplot(2,2,4)
+plot(x(2,:),':','LineWidth',2)
+title('Velocity')
+grid on
+hold on
+subplot(2,2,[1,3])
 plot(-K*x,':','LineWidth',2)
+title('Force In')
+grid on
 hold on
 %-------------------------------------------------------------------------------------
 
@@ -67,7 +76,7 @@ for eps = 1:epsds
     for i=2:N
         %Propogate state
         x_vec{eps} = [x_vec{eps}, state_next(sys,x_vec{eps}(:,end),u_vec{eps}(:,end),Ts)];
-        u_vec{eps} = [u_vec{eps}, U*x_vec{eps}(:,end)+1.0*randn(nu)];
+        u_vec{eps} = [u_vec{eps}, U*x_vec{eps}(:,end)+5.0*randn(nu)];
         %Calculate net cost
         cost_LQR{eps} = cost_LQR{eps}+[x_vec{eps}(:,i)' u_vec{eps}(:,i)']*[E zeros(nx,nu); zeros(nu,nx) F]*[x_vec{eps}(:,i); u_vec{eps}(:,i)];
     end
@@ -78,11 +87,13 @@ for eps = 1:epsds
     H21 = H(nx+1:end,1:nu+1);
     U = -inv(H22)*H21;
     %Plotting
-    subplot(2,1,1)
+    subplot(2,2,2)
     plot(x_vec{eps}(1,:))
-    grid on
     hold on
-    subplot(2,1,2)
+    subplot(2,2,4)
+    plot(x_vec{eps}(2,:))
+    hold on
+    subplot(2,2,[1,3])
     plot(u_vec{eps}(1,:))
     grid on
     pause(0.001)
