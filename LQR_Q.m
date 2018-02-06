@@ -55,17 +55,23 @@ plot(x(2,:),':','LineWidth',2)
 title('Velocity')
 grid on
 hold on
-subplot(2,2,[1,3])
+subplot(2,2,1)
 plot(-K*x,':','LineWidth',2)
 title('Force In')
 grid on
 hold on
+subplot(2,2,3)
+title('LQ cost')
+xlabel('Episode')
+grid on
+hold on
 %-------------------------------------------------------------------------------------
 
-%Discount factor
+%RL parameters
 gamma = 1.0;
 H = zeros(nx+nu,nx+nu);
 alpha = 0.5;
+noise = 2.0;
 
 %Perform experiments and improvement
 for eps = 1:epsds
@@ -76,7 +82,7 @@ for eps = 1:epsds
     for i=2:N
         %Propogate state
         x_vec{eps} = [x_vec{eps}, state_next(sys,x_vec{eps}(:,end),u_vec{eps}(:,end),Ts)];
-        u_vec{eps} = [u_vec{eps}, U*x_vec{eps}(:,end)+5.0*randn(nu)];
+        u_vec{eps} = [u_vec{eps}, U*x_vec{eps}(:,end)+noise*randn(nu)];
         %Calculate net cost
         cost_LQR{eps} = cost_LQR{eps}+[x_vec{eps}(:,i)' u_vec{eps}(:,i)']*[E zeros(nx,nu); zeros(nu,nx) F]*[x_vec{eps}(:,i); u_vec{eps}(:,i)];
     end
@@ -93,11 +99,15 @@ for eps = 1:epsds
     subplot(2,2,4)
     plot(x_vec{eps}(2,:))
     hold on
-    subplot(2,2,[1,3])
+    subplot(2,2,1)
     plot(u_vec{eps}(1,:))
-    grid on
-    pause(0.001)
     hold on
+    if eps>1
+        subplot(2,2,3)
+        line([eps-1,eps],[cost_LQR{eps-1},cost_LQR{eps}])
+        hold on
+    end
+    pause(0.001)
 end
 
 
