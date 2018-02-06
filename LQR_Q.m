@@ -13,7 +13,7 @@ Ts = 0.0001;
 epsds = 10;
 
 %Duration per episode
-N = 2000;
+N = 1000;
 
 %Initial feedback gain U
 U = -0.01*ones(1,nx);
