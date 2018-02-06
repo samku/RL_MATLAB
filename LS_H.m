@@ -1,4 +1,4 @@
-function U = LS_H(x,u,E,F,gamma)
+function [H,U] = LS_H(x,u,E,F,gamma)
 
     %Get size
     nx = size(x,1);
@@ -24,7 +24,6 @@ function U = LS_H(x,u,E,F,gamma)
     optimize([],norm(G-g,2),sdpsettings('verbose',0));
     
     %Extract matrices and calculate greedy U
-    value(H22)
-    value(H21)
+    H = value(H);
     U = -inv(value(H22))*value(H21);
 end
