@@ -70,7 +70,7 @@ hold on
 %RL parameters
 gamma = 1.0;
 H = zeros(nx+nu,nx+nu);
-alpha = 0.5;
+alpha = 0.75;
 noise = 2.0;
 
 %Perform experiments and improvement
@@ -91,7 +91,7 @@ for eps = 1:epsds
     H = H+alpha*(Ht-H);
     H22 = H(nx+1:end,nx+1:end);
     H21 = H(nx+1:end,1:nu+1);
-    U = -inv(H22)*H21;
+    U = -inv(H22)*H21
     %Plotting
     subplot(2,2,2)
     plot(x_vec{eps}(1,:))
