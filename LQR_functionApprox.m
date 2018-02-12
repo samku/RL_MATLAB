@@ -13,7 +13,7 @@ Ts = 0.01;
 epsds = 10000;
 
 %Duration per episode
-N = 500;
+N = 800;
 
 %Initial feedback gain U
 U = -0.1*ones(1,nx);
@@ -68,21 +68,35 @@ hold on
 %-------------------------------------------------------------------------------------
 feature = @(x,u)[x(1)^2; x(2)^2; x(1)*x(2); x(1)*u; x(2)*u; u^2];
 
+%Define optimizer object
+H = sdpvar(nx+nu,nx+nu);
+x = sdpvar(nx,N-1);
+u = sdpvar(nu,N-1);
+cost = sdpvar(1,N-1);
+prob = sdpvar(1,N-1);
+f= 0 ;
+    for i=1:N-1
+        Q_value = [x(:,i)' u(:,i)']*H*[x(:,i); u(:,i)];
+        f =f + prob(i)*(cost(i)-Q_value)^2;
+    end
+H_optim = optimizer([],f,[],{x,u,prob,cost},H);
+
 %RL parameters
 gamma = 1.0;
-W = 100*ones(10,1);
+H = ones(nx+nu,nx+nu);
 alpha_g = 0.001;
-noise = 2.0;
+noise = 1.0;
 
 %Perform experiments and improvement
 for eps = 1:epsds
     %Calculate FB gain from H matrix
-    U = -[W(4) W(5)]/W(6);
+    H22 = H(nx+1:end,nx+1:end);
+    H21 = H(nx+1:end,1:nu+1);
+    U = -inv(H22)*H21
     %Store vectors
     x_vec{eps} = x0;
     u_vec{eps} = U*x0;
     cost_LQR{eps} = 0;
-    delW = zeros(size(W));
     for i=2:N
         %Propogate state
         x_vec{eps} = [x_vec{eps}, state_next(sys,x_vec{eps}(:,end),u_vec{eps}(:,end),Ts)];
@@ -92,7 +106,7 @@ for eps = 1:epsds
     end
     %Accumulate value gradient in an MC fashion
     %For stage i, recurse over all future states - Every visit MC
-    distance = 10;
+    distance = 0;
     for i=1:N-1
         cost(i) = 0;
         prob(i) = 0;
@@ -107,16 +121,10 @@ for eps = 1:epsds
         end
         prob(i) = prob(i)/(N-1);
         prob(i) = 1/N;
-        %W = W+prob(i)*alpha_g*(cost(i)-W'*feature(x_vec{eps}(:,i), u_vec{eps}(:,i)))*feature(x_vec{eps}(:,i), u_vec{eps}(:,i));
     end
-    W = sdpvar(6,1);
-    f= 0 ;
-    for i=1:N-1
-        f =f + prob(i)*(cost(i)-W'*feature(x_vec{eps}(:,i), u_vec{eps}(:,i)))^2;
-    end
-    optimize([],f)
-    W = value(W);
-    
+    %Solve optmization problem
+    H = H_optim(x_vec{eps}(:,1:N-1),u_vec{eps}(:,1:N-1),prob,cost);
+    H = value(H);
     %Plotting
     subplot(2,2,2)
     plot(x_vec{eps}(1,:))
@@ -127,20 +135,18 @@ for eps = 1:epsds
     subplot(2,2,1)
     plot(u_vec{eps}(1,:))
     hold on
-%     if eps>1
-%         subplot(2,2,3)
-%         line([eps-1,eps],[cost_LQR{eps-1},cost_LQR{eps}])
-%         hold on
-%     end
-    subplot(2,2,3)
-    yyaxis left
-    plot(cost)
-    hold on
-    subplot(2,2,3)
-    yyaxis right
-    plot(prob,':')
-    hold on
+    if eps>1
+        subplot(2,2,3)
+        line([eps-1,eps],[cost_LQR{eps-1},cost_LQR{eps}])
+        hold on
+    end
+%     subplot(2,2,3)
+%     yyaxis left
+%     plot(cost)
+%     hold on
+%     subplot(2,2,3)
+%     yyaxis right
+%     plot(prob,':')
+%     hold on
     pause(0.001)
 end
-
-
