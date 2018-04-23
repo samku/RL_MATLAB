@@ -24,8 +24,8 @@ function data=  demo()
         
     
     %% define problem definitions
-    problem = logistic_regression(data.x_train, data.y_train, data.x_test, data.y_test); 
-    
+    %problem = logistic_regression(data.x_train, data.y_train, data.x_test, data.y_test); 
+    problem = logistic_regression(data.x_train, data.y_train,[],[]);
     
     %% perform algorithms SGD and SVRG 
     options.w_init = data.w_init;    

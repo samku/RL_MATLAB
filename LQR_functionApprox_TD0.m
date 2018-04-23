@@ -10,10 +10,10 @@ x0(1) = 10;
 Ts = 0.01;
 
 %Number of episodes
-epsds = 100;
+epsds = 10000;
 
 %Duration per episode
-N = 500;
+N = 800;
 
 %Initial feedback gain U
 U = -0.1*ones(1,nx);
@@ -66,15 +66,18 @@ xlabel('Episode')
 grid on
 hold on
 %-------------------------------------------------------------------------------------
-
 %RL parameters
 gamma = 1.0;
-H = zeros(nx+nu,nx+nu);
-alpha = 1.0;
-noise = 5.0;
+W = ones(6,1);
+dW = zeros(size(W));
+alpha = 1e-8;
+noise = 1.0;
+feature = @(x,u)[x(1)^2; x(2)^2; x(1)*x(2); x(1)*u; x(2)*u; u^2];
 
 %Perform experiments and improvement
 for eps = 1:epsds
+    %Calculate FB gain from W vector
+    U = (-0.5/W(6))*[W(4) W(5)];
     %Store vectors
     x_vec{eps} = x0;
     u_vec{eps} = U*x0;
@@ -82,16 +85,17 @@ for eps = 1:epsds
     for i=2:N
         %Propogate state
         x_vec{eps} = [x_vec{eps}, state_next(sys,x_vec{eps}(:,end),u_vec{eps}(:,end),Ts)];
-        u_vec{eps} = [u_vec{eps}, U*x_vec{eps}(:,end)+noise*randn(nu)/eps];
+        u_vec{eps} = [u_vec{eps}, U*x_vec{eps}(:,end)+noise*randn(nu)];
         %Calculate net cost
-        cost_LQR{eps} = cost_LQR{eps}+[x_vec{eps}(:,i)' u_vec{eps}(:,i)']*[E zeros(nx,nu); zeros(nu,nx) F]*[x_vec{eps}(:,i); u_vec{eps}(:,i)];
+        cost_LQR{eps} = cost_LQR{eps}+ [x_vec{eps}(:,i)' u_vec{eps}(:,i)']*[E zeros(nx,nu); zeros(nu,nx) F]*[x_vec{eps}(:,i); u_vec{eps}(:,i)];
+        %Find TD(0) for (i-1) and update gradient of H
+        prev_stg_cost = [x_vec{eps}(:,i)' u_vec{eps}(:,i)']*[E zeros(nx,nu); zeros(nu,nx) F]*[x_vec{eps}(:,i); u_vec{eps}(:,i)];
+        Q_pi = prev_stg_cost + gamma*W'*feature(x_vec{eps}(:,i), u_vec{eps}(:,i));
+        Q_W = W'*feature(x_vec{eps}(:,i-1), u_vec{eps}(:,i-1));
+        TD = Q_pi-Q_W;
+        dW  =  2*TD*feature(x_vec{eps}(:,i-1), u_vec{eps}(:,i-1));
+        W = W - alpha*dW;
     end
-    %Calculate new U based on data
-    [Ht,~] = LS_H(x_vec{eps},u_vec{eps},E,F,gamma);
-    H = H+alpha*(Ht-H);
-    H22 = H(nx+1:end,nx+1:end);
-    H21 = H(nx+1:end,1:nu+1);
-    U = -inv(H22)*H21
     %Plotting
     subplot(2,2,2)
     plot(x_vec{eps}(1,:))
@@ -107,7 +111,13 @@ for eps = 1:epsds
         line([eps-1,eps],[cost_LQR{eps-1},cost_LQR{eps}])
         hold on
     end
+%     subplot(2,2,3)
+%     yyaxis left
+%     plot(cost)
+%     hold on
+%     subplot(2,2,3)
+%     yyaxis right
+%     plot(prob,':')
+%     hold on
     pause(0.001)
 end
-
-

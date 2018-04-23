@@ -10,10 +10,10 @@ x0(1) = 10;
 Ts = 0.01;
 
 %Number of episodes
-epsds = 100;
+epsds = 10000;
 
 %Duration per episode
-N = 500;
+N = 800;
 
 %Initial feedback gain U
 U = -0.1*ones(1,nx);
@@ -66,32 +66,49 @@ xlabel('Episode')
 grid on
 hold on
 %-------------------------------------------------------------------------------------
-
 %RL parameters
 gamma = 1.0;
-H = zeros(nx+nu,nx+nu);
-alpha = 1.0;
-noise = 5.0;
+theta = -ones(nx,1);
+alpha_g = 0.001;
+noise = 1.0;
 
 %Perform experiments and improvement
 for eps = 1:epsds
+    %Calculate FB gain from H matrix
+    U = theta;
     %Store vectors
     x_vec{eps} = x0;
-    u_vec{eps} = U*x0;
+    u_vec{eps} = U'*x0;
     cost_LQR{eps} = 0;
     for i=2:N
         %Propogate state
         x_vec{eps} = [x_vec{eps}, state_next(sys,x_vec{eps}(:,end),u_vec{eps}(:,end),Ts)];
-        u_vec{eps} = [u_vec{eps}, U*x_vec{eps}(:,end)+noise*randn(nu)/eps];
+        u_vec{eps} = [u_vec{eps}, U'*x_vec{eps}(:,end)+noise*randn(nu)];
         %Calculate net cost
-        cost_LQR{eps} = cost_LQR{eps}+[x_vec{eps}(:,i)' u_vec{eps}(:,i)']*[E zeros(nx,nu); zeros(nu,nx) F]*[x_vec{eps}(:,i); u_vec{eps}(:,i)];
+        cost_LQR{eps} = cost_LQR{eps}+ [x_vec{eps}(:,i)' u_vec{eps}(:,i)']*[E zeros(nx,nu); zeros(nu,nx) F]*[x_vec{eps}(:,i); u_vec{eps}(:,i)];
     end
-    %Calculate new U based on data
-    [Ht,~] = LS_H(x_vec{eps},u_vec{eps},E,F,gamma);
-    H = H+alpha*(Ht-H);
-    H22 = H(nx+1:end,nx+1:end);
-    H21 = H(nx+1:end,1:nu+1);
-    U = -inv(H22)*H21
+    %Accumulate value gradient in an MC fashion
+    %For stage i, recurse over all future states - Every visit MC
+    distance = 0;
+    for i=1:N-1
+        cost(i) = 0;
+        prob(i) = 0;
+        for j=i:N
+            stage_cost =  [x_vec{eps}(:,j)' u_vec{eps}(:,j)']*[E zeros(nx,nu); zeros(nu,nx) F]*[x_vec{eps}(:,j); u_vec{eps}(:,j)];
+            cost(i) = cost(i) - (gamma^(j-1))*stage_cost;
+            %Make distribution based on tile coading in [ {x},{u}] space
+            distance_vector = [x_vec{eps}(:,i);u_vec{eps}(:,i)]-[x_vec{eps}(:,j);u_vec{eps}(:,j)];
+            if sqrt(distance_vector'*distance_vector)<=distance
+                prob(i) = prob(i)+1;
+            end
+        end
+        prob(i) = prob(i)/(N-1);
+        prob(i) = 1/N;
+    end
+    %Solve optmization problem
+    theta = sdpvar(size(theta));
+    f = 0;
+    
     %Plotting
     subplot(2,2,2)
     plot(x_vec{eps}(1,:))
@@ -109,5 +126,3 @@ for eps = 1:epsds
     end
     pause(0.001)
 end
-
-

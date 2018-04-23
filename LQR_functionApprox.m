@@ -13,7 +13,7 @@ Ts = 0.01;
 epsds = 10000;
 
 %Duration per episode
-N = 800;
+N = 500;
 
 %Initial feedback gain U
 U = -0.1*ones(1,nx);
@@ -67,6 +67,7 @@ grid on
 hold on
 %-------------------------------------------------------------------------------------
 feature = @(x,u)[x(1)^2; x(2)^2; x(1)*x(2); x(1)*u; x(2)*u; u^2];
+W = ones(6,1);
 
 %Define optimizer object
 H = sdpvar(nx+nu,nx+nu);
@@ -84,11 +85,12 @@ H_optim = optimizer([],f,[],{x,u,prob,cost},H);
 %RL parameters
 gamma = 1.0;
 H = ones(nx+nu,nx+nu);
-alpha_g = 0.001;
-noise = 1.0;
+alpha = 1e-10;
+noise = 5.0;
 
 %Perform experiments and improvement
 for eps = 1:epsds
+    dW = zeros(size(W));
     %Calculate FB gain from H matrix
     H22 = H(nx+1:end,nx+1:end);
     H21 = H(nx+1:end,1:nu+1);
@@ -120,8 +122,22 @@ for eps = 1:epsds
             end
         end
         prob(i) = prob(i)/(N-1);
-        prob(i) = 1/N;
+        prob(i) = 1;
     end
+    gd_iters = 1000;
+    for gd = 1:gd_iters
+        dH = zeros(size(H));
+        for i=1:N-1
+            %Calculate gradient
+            %dH = dH+2*([x_vec{eps}(:,i);u_vec{eps}(:,i)]'*H*[x_vec{eps}(:,i);u_vec{eps}(:,i)]-cost(i))*[x_vec{eps}(:,i);u_vec{eps}(:,i)]*[x_vec{eps}(:,i);u_vec{eps}(:,i)]';
+        end
+        %H = H - alpha*dH ; 
+    end
+    net_error = 0;
+    for i=1:N-1
+        net_error = net_error + (cost(i)-[x_vec{eps}(:,i);u_vec{eps}(:,i)]'*H*[x_vec{eps}(:,i);u_vec{eps}(:,i)])^2;
+    end
+    net_error
     %Solve optmization problem
     H = H_optim(x_vec{eps}(:,1:N-1),u_vec{eps}(:,1:N-1),prob,cost);
     H = value(H);
@@ -140,13 +156,5 @@ for eps = 1:epsds
         line([eps-1,eps],[cost_LQR{eps-1},cost_LQR{eps}])
         hold on
     end
-%     subplot(2,2,3)
-%     yyaxis left
-%     plot(cost)
-%     hold on
-%     subplot(2,2,3)
-%     yyaxis right
-%     plot(prob,':')
-%     hold on
     pause(0.001)
 end
