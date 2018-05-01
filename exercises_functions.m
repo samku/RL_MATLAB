@@ -10,16 +10,14 @@ p = 1.0;
 
 %Parameters
 init_state = 10;
-final_state = 0;
-N_steps = 50;
+final_state = 0;    
+N_steps = 10;
 N_episodes = 100;
 gamma = 1.0;
-epsilon = 0.001;
-factor = 1.0;
 
 %Cost weights
 Q = 1;
-R = 0.001;
+R = 1;
 [K,~,~] = dlqr(a1,b1,Q,R,0);
 x_sim = init_state;
 for i=2:N_steps
@@ -33,10 +31,10 @@ H = ones(2,2);
 type = 4;
 %1 - MC, 2- MC, RLS
 
-if type == 1
+if type == 1                             
     %Simulation - Monte carlo - RLS
     cost_MC = [];
-    K_vec =[];
+    K_vec =[];   
     x = zeros(N_episodes,N_steps);
     u = zeros(N_episodes,N_steps);
     for i=1:N_episodes
@@ -337,9 +335,8 @@ plot(cost_MC)
 hold on
 pause(0.001)
 
-keyboard
 
-
-[a_grid,x_grid] = meshgrid(A,X);
-surf(a_grid,x_grid,pi_table')
+% 
+% [a_grid,x_grid] = meshgrid(A,X);
+% surf(a_grid,x_grid,pi_table')
 

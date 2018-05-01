@@ -71,7 +71,7 @@ if type == 1
         for j=1:N_steps-1
             x_location = find(X == round(x(i,j),log10(1/x_step)));
             u_location = find(A == round(u(i,j),log10(1/u_step)));
-            counter_table(u_location,x_location) = counter_table(u_location,x_location)+1;
+            cc
             %Calculate total cost till end
             net_cost = 0;
             for k=j:N_steps
