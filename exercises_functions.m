@@ -9,7 +9,7 @@ b2 = b1;
 p = 1.0;
 
 %Parameters
-init_state = 10;
+init_state = 20;
 final_state = 0;    
 N_steps = 10;
 N_episodes = 100;
@@ -28,7 +28,7 @@ end
 H = ones(2,2);
 
 %Type
-type = 4;
+type = 3;
 %1 - MC, 2- MC, RLS
 
 if type == 1                             
@@ -107,7 +107,7 @@ if type == 2
         for j=2:N_steps
             %Apply to dynamics - Observe next state
             u(i,j-1) = (H(2,1)/H(2,2))*(final_state-x(i,j-1))+(0.01)*randn(1,1);
-            if x(i,j-1)<=2.5
+            if x(i,j-1)<=10
                 x(i,j) = a1*x(i,j-1)^p+b1*u(i,j-1);
             else
                 x(i,j) = a2*x(i,j-1)^p+b2*u(i,j-1);

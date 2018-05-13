@@ -9,14 +9,14 @@ A2 = 0.9*eye(2);
 B2 = Ts*eye(2);
 x1(:,1) = [35;20];
 x2(:,1) = [20;20];
-r = [10;0]; %Formation vector
+r = [10;5]; %Formation vector
 
 %Problem type
 type = 1; %1-distributed, 2- central
 
 if type == 1
     %Problems--------------------
-    N = 100;
+    N = 20;
     Q = 0.0001*eye(2);
     R = 0.0001*eye(2);
     Q12 = 10000*eye(2);
@@ -68,8 +68,8 @@ if type == 1
 
     %Simulation----------------------------------
     N_sim = 200;
-    dd_iters = 1;
-    alpha = 10;
+    dd_iters = 5;
+    alpha = 100;
     lambda12 = zeros(2,N);
     lambda21 = zeros(2,N);
     figure
