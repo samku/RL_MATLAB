@@ -11,18 +11,19 @@ p = 1.0;
 %Parameters
 init_state = 20;
 final_state = 0;    
-N_steps = 10;
+N_steps = 20;
 N_episodes = 100;
 gamma = 1.0;
 
 %Cost weights
 Q = 1;
 R = 1;
-[K,~,~] = dlqr(a1,b1,Q,R,0);
+[K,S,~] = dlqr(a1,b1,Q,R,0);
 x_sim = init_state;
 for i=2:N_steps
     x_sim = [x_sim a1*x_sim(i-1)+b1*K*(final_state-x_sim(i-1))];
 end
+H_sim = [Q+a1*S*a1 a1*S*b1; b1*S*a1 R+b1*S*b1];
 
 %Initializtion
 H = ones(2,2);
@@ -167,7 +168,8 @@ if type == 3
         x(i,1) = init_state;
         for j=2:N_steps
             %Apply to dynamics - Observe next state
-            u(i,j-1) = (H(2,1)/H(2,2))*(final_state-x(i,j-1))+0.05*randn(1,1);
+            gain =  (H(2,1)/H(2,2));
+            u(i,j-1) =gain*(final_state-x(i,j-1))+0.001*randn(1,1);
             K_vec = [ K_vec;(H(2,1)/H(2,2))];
             if x(i,j-1)<=2.5
                 x(i,j) = a1*x(i,j-1)^p+b1*u(i,j-1);
