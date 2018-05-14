@@ -2,9 +2,9 @@ clc
 clear all
 
 %System dynamics
-a1 = 0.4;
+a1 = 0.9;
 b1 = 1.0;
-a2 = 0.4;
+a2 = a1;
 b2 = b1;
 p = 1.0;
 
@@ -167,7 +167,7 @@ if type == 3
         x(i,1) = init_state;
         for j=2:N_steps
             %Apply to dynamics - Observe next state
-            u(i,j-1) = (H(2,1)/H(2,2))*(final_state-x(i,j-1))+0.001*randn(1,1);
+            u(i,j-1) = (H(2,1)/H(2,2))*(final_state-x(i,j-1))+0.05*randn(1,1);
             K_vec = [ K_vec;(H(2,1)/H(2,2))];
             if x(i,j-1)<=2.5
                 x(i,j) = a1*x(i,j-1)^p+b1*u(i,j-1);

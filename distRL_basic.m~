@@ -2,7 +2,7 @@ clc
 clear all
 
 %Dynamics---------------------------------
-a1 = 0.8;
+a1 = 0.5;
 a2 = 0.5;
 b1 = 1;
 b2 = 1;
@@ -31,12 +31,12 @@ K_22 = -0.01;
 
 %Global cost params----------------------
 E1 = 1; %Indiv weight
-E2 = 0; %Combined weight
-F = 10; %Input weight
+E2 = 1; %Combined weight
+F = 1; %Input weight
 
 %Sim params------------------------------
-N_MC = 1;
-N_sim = 50;
+N_MC = 500;
+N_sim = 20;
 
 %Calculate ideal trajectories-------------
 A = [a1 0; 0 a2];
@@ -62,15 +62,14 @@ H22 = H(3:4,3:4);
 %Verify if costs correspond correctly
 for j=1:N_sim-1
     cost1(j) = 0;
-    cost2(j) = 0;
     for k=j:N_sim-1
         cost1(j) = cost1(j) + (E1+E2)*x_sim(1,k)^2 + F*u_sim(1,k)^2 - E2*x_sim(1,k)*x_sim(2,k);
-        cost2(j) = cost2(j) + (E1+E2)*x_sim(2,k)^2 + F*u_sim(2,k)^2 - E2*x_sim(1,k)*x_sim(2,k);
     end
-    cost1_calc(j) = [x_sim(1,j) u_sim(1,j)]*H11*[x_sim(1,j);u_sim(1,j)]+[x_sim(1,j) u_sim(1,j)]*H12*[x_sim(2,j);u_sim(2,j)];
-    cost2_calc(j) = [x_sim(2,j) u_sim(2,j)]*H22*[x_sim(2,j);u_sim(2,j)]+[x_sim(2,j) u_sim(2,j)]*H21*[x_sim(1,j);u_sim(1,j)];
 end
     
+
+
+
 
 % % %Build optimizer object for faster sim
 % H_a = sdpvar(2,2);
@@ -91,7 +90,7 @@ end
 figure
 alpha_1 = [];
 alpha_2 = [];
-num_gd_iters = 50;
+num_gd_iters = 10;
 for i=1:N_MC
     x1_vec = x1_start;
     u1_vec = [];
@@ -100,8 +99,8 @@ for i=1:N_MC
     %Do one MC run===============
     for j=2:N_sim
         %Calculate inputs through exchange
-        u1_vec = [u1_vec K_11(end)*x1_vec(j-1)+K_12(end)*x2_vec(j-1)+0.0*randn(1)];
-        u2_vec = [u2_vec K_22(end)*x2_vec(j-1)+K_21(end)*x1_vec(j-1)+0.0*randn(1)];
+        u1_vec = [u1_vec K_11(end)*x1_vec(j-1)+K_12(end)*x2_vec(j-1)+0.001*randn(1)];
+        u2_vec = [u2_vec K_22(end)*x2_vec(j-1)+K_21(end)*x1_vec(j-1)+0.001*randn(1)];
         %Simulate systems
         x1_vec(j) = a1*x1_vec(j-1)+b1*u1_vec(j-1);
         x2_vec(j) = a2*x2_vec(j-1)+b2*u2_vec(j-1);
@@ -188,10 +187,10 @@ for i=1:N_MC
     matrix_2 = -[H_12(1,2)+H_21(2,1) H_2(2,1)+H_2(1,2);...
                               H_1(2,1)+H_1(1,2)   H_12(2,1)+H_21(1,2)];
     gains = inv(matrix_1)*matrix_2;
-%     K_11 = [K_11 gains(1,1)];
-%     K_12 = [K_12 gains(1,2)];
-%     K_21 = [K_21 gains(2,1)];
-%     K_22 = [K_22 gains(2,2)];
+    K_11 = [K_11 gains(1,1)];
+    K_12 = [K_12 gains(1,2)];
+    K_21 = [K_21 gains(2,1)];
+    K_22 = [K_22 gains(2,2)];
     
     %Plot to verify
     subplot(2,2,1)
@@ -217,26 +216,4 @@ for i=1:N_MC
      pause(0.001)
     
 end
-
-%Check if net cost matches the H
-K_sim = [K_11 K_12; K_21 K_22];
-x_verify = [x1_start; x2_start];
-for j=2:N_sim
-    u_verify(:,j-1) = K_sim*x_verify(:,j-1);
-    x_verify(:,j) = A*x_verify(:,j-1) + B*u_verify(:,j-1);
-end
-%Calculate net costs
-for j=1:N_sim-1
-    cost_enum(j) = 0;
-    for k=j:N_sim-1
-        cost_enum(j) = cost_enum(j) + x_verify(:,k)'*Q*x_verify(:,k) + u_verify(:,k)'*R*u_verify(:,k);
-    end
-    cost_H(j) = [x_verify(1,j);u_verify(1,j);x_verify(2,j);u_verify(2,j)]'*[H_1 H_12; H_21 H_2]*[x_verify(1,j);u_verify(1,j);x_verify(2,j);u_verify(2,j)];
-end
-
-figure
-plot(cost_H)
-hold on
-plot(cost_enum)
-    
     
